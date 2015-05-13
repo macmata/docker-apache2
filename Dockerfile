@@ -1,10 +1,16 @@
+#how to build 
+#sudo docker build -t apache2 .
+#how to run 
+#sudo docker run -p 8080:8080 --name apache_process -d  apache2 /usr/sbin/apache2ctl -D FOREGROUND
+
 FROM ubuntu:14.04
+
+MAINTAINER Alexadnre Leblanc
 
 RUN apt-get update
 RUN apt-get install -y apache2
 RUN apt-get install -y build-essential
 RUN apt-get install -y libapache2-mod-proxy-html libxml2-dev 
-
 
 RUN a2enmod rewrite
 RUN a2enmod proxy
@@ -27,19 +33,12 @@ ENV APACHE_LOCK_DIR /var/lock/apache2
 ENV APACHE_SERVERADMIN admin@localhost
 ENV APACHE_SERVERNAME localhost
 ENV APACHE_SERVERALIAS docker.localhost
-ENV APACHE_DOCUMENTROOT /var/www
 
-
-ADD ./001-docker.conf /etc/apache2/sites-available/
-RUN ln -s /etc/apache2/sites-available/001-docker.conf /etc/apache2/sites-enabled/
+#copy the web dir to docker, folder MUST be in same dir as the execution , in the case the dockerfile 
+COPY ./mainline /var/www/mainline 
 
 #ADD all the file to setup configuration 
+ADD ./000-default.conf /etc/apache2/sites-available/
 
-
-EXPOSE 8080
-
-
-# the script can serve a list of command
-ADD ./run.sh /opt/run.sh
-RUN chmod 755 /opt/*.sh
-CMD ["/bin/bash", "/opt/startup.sh"]
+#clean enabled site before we add our own and make symlink and restart apache to see if there is any error
+RUN rm /etc/apache2/sites-enabled//000-default.conf && ln -s /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-enabled/ && chown -R www-data:www-data /var/www/ && service apache2 restart
